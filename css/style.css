@@ -1,17 +1,6 @@
 .container {
-    width: 1000px;
-    margin: 0 auto; 
-    text-align: center; 
-}
-table {
-    border-collapse: collapse;
     width: 100%;
-}
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-}
-th {
-    background-color: #f2f2f2;
+    max-width: 62.5rem;
+    margin: 0 auto; 
+    padding: 0 4rem;
 }

@@ -1,119 +1,164 @@
+import { $createButton, $taskContainer } from "./element.js";
+import { sanitizeInput } from "./utility.js";
+import { ALL, EDIT, READ } from "./const.js";
 
-import {
-    $createButton,
-    $taskContainer
-} from './element.js'
-
-let isFormOpen = false
-let tasks = []
+let isFormOpen = false;
+let tasks = [];
+let SELECTED = ALL;
 
 const getUniqueId = () => Date.now();
 
-const makeForm = (taskInfo = {}) => {
-    let $form = document.createElement('li')
-    let $title = document.createElement('input');
-    let $addButton = document.createElement('button')
+const editForm = (liElement, task) => {
+  const $inputElement = document.createElement("input");
+  const $updateButton = document.createElement("button");
+  const $cancelButton = document.createElement("button");
+  const $deleteButton = document.createElement("button");
 
-    $addButton.innerHTML = "Add"
-    $title.setAttribute('name', 'title');
-    $title.setAttribute('placeholder', "Enter your task name")
-    $title.setAttribute('id', 'title')
-    $addButton.setAttribute('id', 'add-task')
-    $addButton.addEventListener('click', () => addTask())
+  $inputElement.setAttribute("id", `input-${task.id}`);
+  $updateButton.setAttribute("id", `btn-update-${task.id}`);
+  $cancelButton.setAttribute("id", `btn-cancel-${task.id}`);
 
-    if (taskInfo.title) {
-        $title.value = taskInfo.title
-    }
+  $inputElement.value = task.title;
 
-    $form.appendChild($title);
-    $form.appendChild($addButton)
+  $deleteButton.innerText = "Delete";
+  $updateButton.innerHTML = "Update";
+  $cancelButton.innerHTML = "Cancel";
 
-    return $form
-}
+  $deleteButton.addEventListener("click", () => deleteTaskHandler(task.id));
+  $updateButton.addEventListener("click", () => updateTaskHandler(task.id));
+  $cancelButton.addEventListener("click", () => calcelTaskHandler(task.id));
 
-const generateTask = (task) => {
-    let $listElement = document.createElement('li');
-    let $textContainer = document.createElement('span')
-    let $deleteButton = document.createElement('button')
+  liElement.append($inputElement, $updateButton, $deleteButton, $cancelButton);
 
-    $listElement.setAttribute('id', task.id);
-    $deleteButton.setAttribute('id', `btn-${task.id}`);
-    $listElement.appendChild($textContainer);
-    $listElement.appendChild($deleteButton);
+  return liElement;
+};
 
-    $deleteButton.addEventListener('click',()=>deleteTask(task.id))
+const createForm = () => {
+  const $liElement = document.createElement("li");
+  const $inputElement = document.createElement("input");
+  const $addButton = document.createElement("button");
 
+  $addButton.innerHTML = "Add";
+  $inputElement.setAttribute("name", "title");
+  $inputElement.setAttribute("placeholder", "Enter your task name");
+  $inputElement.setAttribute("id", "title");
+  $addButton.setAttribute("id", "add-task");
+  $addButton.addEventListener("click", () => addTaskHandler());
+
+  $liElement.appendChild($inputElement);
+  $liElement.appendChild($addButton);
+
+  return $liElement;
+};
+
+const createTask = (task) => {
+  const $listElement = document.createElement("li");
+
+  if (task.mode == READ) {
+    const $textContainer = document.createElement("span");
+    const $editButton = document.createElement("button");
+    const $deleteButton = document.createElement("button");
+
+    $editButton.setAttribute("id", `btn-edit-${task.id}`);
+    $deleteButton.setAttribute("id", `btn-delete-${task.id}`);
+
+    $editButton.addEventListener("click", () => editTaskHandler(task.id));
+    $deleteButton.addEventListener("click", () => deleteTaskHandler(task.id));
+
+    $deleteButton.innerText = "Delete";
     $textContainer.innerText = task.title;
-    $deleteButton.innerText = 'Delete'
-    return $listElement;
-}
+    $editButton.innerText = "Edit";
 
+    $listElement.append($textContainer, $editButton, $deleteButton);
+  } else if (task.mode == EDIT) {
+    editForm($listElement, task);
+  }
 
+  $listElement.setAttribute("id", task.id);
+
+  return $listElement;
+};
 
 const renderTasks = (taskContiner, tasks) => {
-    tasks.map((task) => {
-        let element = generateTask(task)
-        taskContiner.appendChild(element)
-    })
-}
+  tasks.map((task) => {
+    let element = createTask(task);
+    taskContiner.appendChild(element);
+  });
+};
 
+const updateTaskHandler = (taskId) => {
+  const $inputElement = document.getElementById(`input-${taskId}`);
+  const inputValue = sanitizeInput($inputElement.value);
+  let task = tasks.find((task) => task.id === taskId);
+  task.title = inputValue;
+  task.mode = READ;
+  render();
+};
 
-const addTask = () => {
-    let $title = document.getElementById('title')
-    let titleValue = $title?.value?.trim();
-    
-    if (titleValue.length) {
-        tasks.push({
-            id: getUniqueId(),
-            title: titleValue
-        })
-        render(tasks)
-    }
-}
+const editTaskHandler = (taskId) => {
+  let task = tasks.find((task) => task.id === taskId);
+  task.mode = EDIT;
+  render();
+};
 
-const deleteTask = (taskId) => {
-    taskId = parseInt(taskId)
-    tasks = tasks.filter((task)=> taskId!=task.id)
-    render(tasks);
-}
+const calcelTaskHandler = (taskId) => {
+  let task = tasks.find((task) => task.id === taskId);
+  task.mode = READ;
+  render();
+};
+
+const deleteTaskHandler = (taskId) => {
+  taskId = parseInt(taskId);
+  tasks = tasks.filter((task) => taskId != task.id);
+  render();
+};
+
+const addTaskHandler = () => {
+  const $title = document.getElementById("title");
+  const titleValue = sanitizeInput($title.value);
+
+  if (titleValue.length) {
+    tasks.push({
+      id: getUniqueId(),
+      title: titleValue,
+      mode: READ,
+    });
+    render();
+  }
+};
 
 const toogleButton = () => {
-    if (!isFormOpen) {
-        $createButton.innerText = 'Hide form'
-        isFormOpen = true
-    }
-    else {
-        $createButton.innerText = 'Create'
-        isFormOpen = false
-    }
-}
+  if (!isFormOpen) {
+    $createButton.innerText = "Hide form";
+    isFormOpen = true;
+    return;
+  }
 
-const renderListWithForm = (tasks) => {
-    let form = makeForm();
-    $taskContainer.innerHTML = ''
-    $taskContainer.appendChild(form)
-    renderTasks($taskContainer, tasks);
-}
+  $createButton.innerText = "Create";
+  isFormOpen = false;
+};
 
-const renderListWithoutForm = (tasks) => {
-    $taskContainer.innerHTML = ''
-    renderTasks($taskContainer, tasks);
-}
+const renderOnSelect = (taskContainer) => {
+  switch (SELECTED) {
+    case ALL:
+      renderTasks(taskContainer, tasks);
+  }
+};
 
-const render = (tasks) =>{
-    if (isFormOpen) {
-        renderListWithForm(tasks)
-    }
-    else {
-        renderListWithoutForm(tasks);
-    }
-}
+const render = () => {
+  $taskContainer.innerHTML = "";
+  if (isFormOpen) {
+    let form = createForm();
+    $taskContainer.appendChild(form);
+    renderOnSelect($taskContainer, tasks);
+    return;
+  }
+  renderOnSelect($taskContainer, tasks);
+};
 
 const showForm = () => {
-    toogleButton();
-    render(tasks);
-}
+  toogleButton();
+  render();
+};
 
-$createButton.addEventListener('click', showForm)
-
-
+$createButton.addEventListener("click", showForm);
